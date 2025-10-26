@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Chi tiết phiếu nhập kho</title>
+<style>
+  body { font-family: Arial, sans-serif; margin: 0; background-color: #fff8fa; }
+  .container { width: 850px; margin: 40px auto; background-color: #fff; padding: 20px 30px; border: 2px solid #f8b3c6; box-shadow: 0 2px 8px rgba(244,90,141,0.1); }
+  h2 { text-align: center; margin-bottom: 20px; font-weight: bold; color: #f45a8d; }
+  .row { display: flex; flex-wrap: wrap; gap: 20px; margin-bottom: 20px; }
+  .col { flex: 1; min-width: 250px; }
+  label { display: block; font-weight: bold; margin-bottom: 5px; color: #333; }
+  input, textarea { width: 100%; padding: 5px; border: 1px solid #f5a6be; font-size: 14px; margin-bottom: 10px; background-color: #fff8fa; box-sizing: border-box; }
+  textarea { resize: none; }
+  table { width: 100%; border-collapse: collapse; margin-top: 10px; table-layout: fixed; }
+  th, td { border: 1px solid #f5a6be; padding: 8px; text-align: center; vertical-align: middle; }
+  th { background-color: #f45a8d; color: white; font-weight: bold; }
+  tr:nth-child(even) { background-color: #fff8fa; }
+  tfoot td { font-weight: bold; background-color: #fce4ec; color: #333; }
+  .btn { padding: 6px 12px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+  .btn-add { color: #fff; background-color: #f45a8d; border: 1px solid #f45a8d; }
+  .btn-add:hover { background-color: #e04a7d; border-color: #e04a7d; }
+  .btn-del { color: #fff; background-color: #dc3545; border: 1px solid #dc3545; }
+  .btn-del:hover { background-color: #c82333; border-color: #c82333; }
+  .btn-cancel { background-color: #dc3545; color: #fff; border: none; padding: 8px 20px; border-radius: 5px; margin-left:10px; cursor: pointer; float: right;}
+  .btn-save { background-color: #004080; color: #fff; border: none; padding: 8px 20px; border-radius: 5px; cursor: pointer; float: right; }
+  .btn-cancel:hover { background-color: #c82333; }
+  .btn-save:hover { background-color: #003366; }
+  .clearfix::after { content: ""; display: block; clear: both; }
+  input[readonly] { background-color: #f9f9f9; }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h2>CHI TIẾT PHIẾU NHẬP</h2>
+
+<form id="phieuForm" method="post" action="{% url 'chi_tiet_phieu_nhap' phieu.id %}">
+    {% csrf_token %}
+
+    <div class="row">
+      <div class="col">
+        <label>Nguồn nhập</label>
+        <input type="text" name="nguon_nhap" value="{{ phieu.nguon_nhap }}">
+        <label>Mã nguồn</label>
+        <input type="text" name="ma_nguon" value="{{ phieu.ma_nguon }}">
+        <label>Số điện thoại</label>
+        <input type="text" name="sdt" value="{{ phieu.sdt }}">
+        <label>Địa chỉ</label>
+        <input type="text" name="dia_chi" value="{{ phieu.dia_chi }}">
+      </div>
+      <div class="col">
+        <label>Mã phiếu nhập</label>
+        <input type="text" name="ma_phieu" value="{{ phieu.ma_phieu }}">
+        <label>Lý do nhập</label>
+        <textarea name="ly_do" rows="4">{{ phieu.ly_do }}</textarea>
+      </div>
+    </div>
+
+    <table id="hangTable">
+      <thead>
+        <tr>
+          <th>STT</th>
+          <th>Tên hàng hóa</th>
+          <th>Mã hàng hóa</th>
+          <th>Đơn vị</th>
+          <th>Đơn giá</th>
+          <th>Số lượng</th>
+          <th>Chiết khấu (%)</th>
+          <th>Thành tiền</th>
+          <th>Xóa</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for cth in phieu.chitiet.all %}
+        <tr>
+          <td>{{ forloop.counter }}</td>
+          <td><input type="text" name="ten_hang" value="{{ cth.ten_hang }}"></td>
+          <td><input type="text" name="ma_hang" value="{{ cth.ma_hang }}"></td>
+          <td><input type="text" name="don_vi" value="{{ cth.don_vi }}"></td>
+          <td><input type="number" name="don_gia" value="{{ cth.don_gia }}" oninput="tinhThanhTien(this)"></td>
+          <td><input type="number" name="so_luong" value="{{ cth.so_luong }}" oninput="tinhThanhTien(this)"></td>
+          <td><input type="number" name="chiet_khau" value="{{ cth.chiet_khau }}" oninput="tinhThanhTien(this)"></td>
+          <td><input type="number" name="thanh_tien" value="{{ cth.thanh_tien }}" readonly></td>
+          <td><button type="button" class="btn-del" onclick="xoaDong(this)">X</button></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colspan="7" style="text-align:right;">Tổng cộng:</td>
+          <td id="tongTien">{{ phieu.tong_tien|default:"0" }}</td>
+          <td></td>
+        </tr>
+      </tfoot>
+    </table>
+
+    <button type="button" class="btn btn-add" onclick="themDong()">+ Thêm hàng hóa</button>
+    <input type="hidden" name="tong_tien" id="tongTienInput" value="{{ phieu.tong_tien|default:0 }}">
+
+    <div class="clearfix" style="margin-top:20px;">
+      <button type="button" class="btn-cancel" onclick="huyPhieu()">Hủy</button>
+      <button type="submit" class="btn-save">💾 Lưu thay đổi</button>
+    </div>
+</form>
+</div>
+
+<script>
+function themDong(){
+  const tbody = document.querySelector('#hangTable tbody');
+  const row = document.createElement('tr');
+  row.innerHTML = `
+    <td></td>
+    <td><input type="text" name="ten_hang"></td>
+    <td><input type="text" name="ma_hang"></td>
+    <td><input type="text" name="don_vi"></td>
+    <td><input type="number" name="don_gia" oninput="tinhThanhTien(this)"></td>
+    <td><input type="number" name="so_luong" oninput="tinhThanhTien(this)"></td>
+    <td><input type="number" name="chiet_khau" oninput="tinhThanhTien(this)"></td>
+    <td><input type="number" name="thanh_tien" readonly></td>
+    <td><button type="button" class="btn-del" onclick="xoaDong(this)">X</button></td>
+  `;
+  tbody.appendChild(row);
+  capNhatSTT();
+}
+
+function xoaDong(btn){
+  btn.closest('tr').remove();
+  capNhatSTT();
+  tinhTong();
+}
+
+function capNhatSTT(){
+  const rows = document.querySelectorAll('#hangTable tbody tr');
+  rows.forEach((row, i) => row.cells[0].textContent = i + 1);
+}
+
+function tinhThanhTien(input){
+  const row = input.closest('tr');
+  const donGia = parseFloat(row.querySelector('[name="don_gia"]').value) || 0;
+  const soLuong = parseFloat(row.querySelector('[name="so_luong"]').value) || 0;
+  const chietKhau = parseFloat(row.querySelector('[name="chiet_khau"]').value) || 0;
+  const thanhTien = donGia * soLuong * (1 - chietKhau / 100);
+  row.querySelector('[name="thanh_tien"]').value = thanhTien.toFixed(2);
+  tinhTong();
+}
+
+function tinhTong(){
+  let tong = 0;
+  document.querySelectorAll('[name="thanh_tien"]').forEach(i => tong += parseFloat(i.value) || 0);
+  document.getElementById('tongTien').textContent = tong.toLocaleString('vi-VN');
+  document.getElementById('tongTienInput').value = tong.toFixed(2);
+}
+
+function huyPhieu(){
+  if(confirm("Bạn có chắc chắn muốn hủy?")) location.href = "/nhapkho";
+}
+
+// Submit form an toàn
+document.getElementById('phieuForm').addEventListener('submit', function(e) {
+  // Xóa các input ẩn cũ
+  document.querySelectorAll('.hidden-input').forEach(i => i.remove());
+
+  // Tạo input ẩn cho từng hàng
+  const rows = document.querySelectorAll("#hangTable tbody tr");
+  rows.forEach((row, index) => {
+    ['ten_hang','ma_hang','don_vi','don_gia','so_luong','chiet_khau','thanh_tien'].forEach(key => {
+      const input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = `hidden_${key}`; // ✅ đổi tên
+      input.value = row.querySelector(`[name="${key}"]`).value;
+      input.classList.add('hidden-input');
+      e.target.appendChild(input);
+    });
+  });
+});
+
+</script>
+
+</body>
+</html>
